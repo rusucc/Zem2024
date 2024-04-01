@@ -7,7 +7,7 @@ MotorZEM::MotorZEM(int IN1, int IN2, int enc, int ENABLE, int SLEW, double KPM, 
     this->ENABLE = ENABLE;
     this->enc = enc;
     PID = PIDZEM(KPM, KIM, KDM);
-    reductor = this->reductor;
+    this->reductor = reductor;
     digitalWrite(ENABLE, HIGH);
     digitalWrite(SLEW, HIGH);
     this->runMode = 0;

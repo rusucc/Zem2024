@@ -1,3 +1,6 @@
+#ifndef MotorZEM_h
+#define MotorZEM_h
+
 #include "Arduino.h"
 #include "PIDZEM.h"
 #include "const.h"
@@ -6,18 +9,18 @@ class MotorZEM
 public:
     volatile long count, countAbs; // count pentru pulsuri, se reseteaza
     double speed, targetSpeed, rotations, targetRotations, rotationsAbs;
-    int runMode, cpr, out = 0, PWM = 0, reductor, dt;
+    int runMode, cpr, out = 0, PWM = 0, reductor;
     int IN1, IN2, enc, ENABLE;
     PIDZEM PID;
     bool arrived = false;
     MotorZEM(int IN1, int IN2, int enc, int ENABLE, int SLEW, double KPM, double KIM, double KDM, int reductor, int cpr);
     inline void calculateRotations()
     {
-        rotations = double((count / cpr)) / reductor;
+        rotations = double(count) / cpr / reductor;
     }
     inline void calculateRotationsAbs()
     {
-        rotationsAbs = double((countAbs / cpr)) / reductor;
+        rotationsAbs = double(countAbs) / cpr / reductor;
     }
     inline void setTargetRotations(int rot)
     {
@@ -25,8 +28,7 @@ public:
     }
     inline void calculateSpeed()
     {
-        calculateRotations();
-        speed = rotations * 1000 / dt; // rotatii pe secunda
+        speed = (rotations * 1000) / dt; // rotatii pe secunda
     }
     inline void setTargetSpeed(double v)
     {
@@ -85,3 +87,4 @@ public:
     String printCSV();
     String printRotations();
 };
+#endif

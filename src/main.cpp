@@ -22,27 +22,30 @@ void encB()
 
 int pins_sensors[number] = {A8, A13, A12, A11, A10, A14, A15, A16};
 int pins_sensors_lat[2] = {A1, A2};
-MotorZEM M1 = MotorZEM(1, 8, 32, 28, 29, 0.0625, 0, 0, 10, 3);
-MotorZEM M2 = MotorZEM(7, 5, 36, 34, 35, 1, 0, 0, 10, 3);
-MotorZEM M3 = MotorZEM(1, 8, 32, 28, 29, 1, 0, 0, 10, 3);
+MotorZEM M1 = MotorZEM(1, 8, 32, 28, 29, 0.18, 0.005, 0.03, 10, 3);
+//0.18 0.005, 0.03
+MotorZEM M2 = MotorZEM(7, 5, 36, 34, 35, 0.09, 0, 0, 10, 3);
 // MotorZEM(IN1, IN2, enc, ENABLE, SLEW, KPM, KIM, KDM, reductor, cpr);
-// MotorZEM(I7, 5, enc34, ENABLE, SLEW, KPM, KIM, KDM, reductor, cpr);
 SensorsZEM QRE(0.03, 0, 0, pins_sensors);
 int sensors_lat[2];
 
 inline void update_motors()
 {
-  volatile int bufc0 = count0;
-  volatile int bufc1 = count1;
-
+  int bufc0 = count0;
+  int bufc1 = count1;
+  
   M1.updateCount(bufc0), count0 = 0;
   M2.updateCount(bufc1), count1 = 0;
+  
+  M1.calculateRotations();
+  M2.calculateRotations();
 
   M1.calculateSpeed();
   M2.calculateSpeed();
 
   M1.out = M1.PID.calculateOutput(M1.targetSpeed, M1.speed);
-  M2.out = M2.PID.calculateOutput(M1.targetSpeed, M1.speed);
+  Serial.print(M1.targetSpeed),Serial.print(" "),Serial.println(M1.speed);
+  M2.out = M2.PID.calculateOutput(M2.targetSpeed, M2.speed);
 
   M1.PWM -= M1.out;
   M2.PWM -= M2.out;
@@ -62,20 +65,32 @@ inline void update_sensors()
 }
 inline void telemetry()
 {
+//Serial.print(M1.printPID());
+//Serial.print(" ");
+//Serial.print(M1.speed),Serial.print(" "),Serial.println(M1.targetSpeed);
 }
 void setup()
 {
   Serial.begin(9600);
-  t_motor.begin(update_motors, dt * 1000); // dt milisecunde
-  t_telem.begin(telemetry, 200 * 1000);    // telemetrie la fiecare 200 ms
+  t_motor.begin(update_motors, 100
+   * 1000); // dt milisecunde
+  t_telem.begin(telemetry, 100 * 1000);    // telemetrie la fiecare 200 ms
   t_line.begin(update_sensors, 20 * 1000); // 20 milisecunde intre citiri de senzori de linie
   attachInterrupt(digitalPinToInterrupt(M1.enc), encA, RISING);
   attachInterrupt(digitalPinToInterrupt(M2.enc), encB, RISING);
   M1.setRunMode(0);
   M2.setRunMode(0);
+  int T = millis();
+  while(millis()-T<1000);
 }
 
 void loop()
 {
-  // put your main code here, to run repeatedly:
+  int T = millis();
+  M1.setTargetSpeed(40);
+  M2.setTargetSpeed(0);
+  while(millis()-T<5000)M1.run();
+  M1.setTargetSpeed(80);
+  T = millis();
+  while(millis()-T<5000)M1.run();
 }
