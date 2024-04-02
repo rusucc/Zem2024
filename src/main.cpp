@@ -3,6 +3,7 @@
 #include <PIDZEM.h>
 #include <MotorZEM.h>
 #include <SensorsZEM.h>
+#include <QTRSensors.h>
 // put function declarations here:
 IntervalTimer t_line;
 IntervalTimer t_telem;
@@ -22,11 +23,11 @@ void encB()
 
 int pins_sensors[number] = {A8, A13, A12, A11, A10, A14, A15, A16};
 int pins_sensors_lat[2] = {A1, A2};
-MotorZEM M1 = MotorZEM(1, 8, 32, 28, 29, 0.18, 0.005, 0.03, 10, 3);
+MotorZEM M1 = MotorZEM(1, 8, 32, 28, 29, 0.2, 0.005, 0.03, 10, 3);
 //0.18 0.005, 0.03
-MotorZEM M2 = MotorZEM(7, 5, 36, 34, 35, 0.09, 0, 0, 10, 3);
+MotorZEM M2 = MotorZEM(7, 5, 36, 34, 35, 0.18, 0.005, 0.03, 10, 3);
 // MotorZEM(IN1, IN2, enc, ENABLE, SLEW, KPM, KIM, KDM, reductor, cpr);
-SensorsZEM QRE(0.03, 0, 0, pins_sensors);
+SensorsZEM QRE(0.0024, 0, 0, pins_sensors);
 int sensors_lat[2];
 
 inline void update_motors()
@@ -44,7 +45,6 @@ inline void update_motors()
   M2.calculateSpeed();
 
   M1.out = M1.PID.calculateOutput(M1.targetSpeed, M1.speed);
-  Serial.print(M1.targetSpeed),Serial.print(" "),Serial.println(M1.speed);
   M2.out = M2.PID.calculateOutput(M2.targetSpeed, M2.speed);
 
   M1.PWM -= M1.out;
@@ -59,38 +59,43 @@ inline void update_sensors()
 {
   QRE.calculatePosition();
   QRE.out = QRE.PID.calculateOutput(3500, QRE.position);
-
   sensors_lat[0] = 1024 - analogRead(pins_sensors_lat[0]);
   sensors_lat[1] = 1024 - analogRead(pins_sensors_lat[1]);
 }
 inline void telemetry()
 {
-//Serial.print(M1.printPID());
-//Serial.print(" ");
-//Serial.print(M1.speed),Serial.print(" "),Serial.println(M1.targetSpeed);
+  //Serial.print(QRE.position),Serial.print(" "),Serial.println("3500");
+  //Serial.print(QRE.position),Serial.print(" "),Serial.println(3500);
+  Serial.println(M1.printV());
 }
 void setup()
 {
   Serial.begin(9600);
-  t_motor.begin(update_motors, 100
-   * 1000); // dt milisecunde
-  t_telem.begin(telemetry, 100 * 1000);    // telemetrie la fiecare 200 ms
-  t_line.begin(update_sensors, 20 * 1000); // 20 milisecunde intre citiri de senzori de linie
   attachInterrupt(digitalPinToInterrupt(M1.enc), encA, RISING);
   attachInterrupt(digitalPinToInterrupt(M2.enc), encB, RISING);
   M1.setRunMode(0);
   M2.setRunMode(0);
-  int T = millis();
-  while(millis()-T<1000);
+  delay(2000);
+  //Serial.println("calibrare");
+  QRE.calibrate(200);
+  //Serial.println("calibrare gata");
+  /*for(int i = 0; i < number; i++){
+    Serial.print(QRE.calib[i].min_value), Serial.print(" "),Serial.println(QRE.calib[i].max_value);
+  }
+  */
+  Serial.println("----------------------------");
+  delay(2000);
+
+  t_motor.begin(update_motors, 100 * 1000); // dt milisecunde
+  t_telem.begin(telemetry, 100 * 1000);    // telemetrie la fiecare 200 ms
+  t_line.begin(update_sensors, 30 * 1000); // 20 milisecunde intre citiri de senzori de linie
+  Serial.println("Setup end");
 }
 
 void loop()
 {
-  int T = millis();
-  M1.setTargetSpeed(40);
-  M2.setTargetSpeed(0);
-  while(millis()-T<5000)M1.run();
-  M1.setTargetSpeed(80);
-  T = millis();
-  while(millis()-T<5000)M1.run();
+  M2.setTargetSpeed(((5-QRE.out)>0)? (5-QRE.out):0);
+  M1.setTargetSpeed(((5+QRE.out)>0)? (5+QRE.out):0);
+  M1.run();
+  M2.run();
 }

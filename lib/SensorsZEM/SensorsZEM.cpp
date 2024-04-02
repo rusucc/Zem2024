@@ -5,8 +5,7 @@ void SensorsZEM::readRaw()
     int T = millis();
     for (int i = 0; i < number; i++)
     {
-        while (millis() - T < dts)
-            ;
+        while (millis() - T < dts);
         T = millis();
         rawValues[i] = analogRead(pins[i]);
     }
@@ -16,7 +15,7 @@ SensorsZEM::SensorsZEM(double KPS, double KIS, double KDS, int pins[])
     PID = PIDZEM(KPS, KIS, KDS);
     memcpy(this->pins, pins, number * sizeof(int));
     for (int i = 0; i < number; i++)
-        calib[i].min_value = 0, calib[i].max_value = 1000;
+        calib[i].min_value = 1001, calib[i].max_value = -1;
 }
 void SensorsZEM::calculatePosition()
 {
@@ -26,7 +25,9 @@ void SensorsZEM::calculatePosition()
     readRaw();
     for (int i = 0; i < number; i++)
     {
+        //Serial.print(values[i]),Serial.print(" ");
         values[i] = map(rawValues[i], calib[i].min_value, calib[i].max_value, 0, 1000);
+        //Serial.println(values[i]);
         if (values[i] > threshold)
             line = true;
         if (values[i] > 100)
@@ -51,9 +52,7 @@ void SensorsZEM::calibrate(int cycles)
     {
         for (int i = 0; i < number; i++)
         {
-            int T = millis();
-            while (millis() - T < dts)
-                ;
+            delay(dts);
             int temp_value = analogRead(pins[i]);
             calib[i].min_value = min(calib[i].min_value, temp_value);
             calib[i].max_value = max(calib[i].max_value, temp_value);
