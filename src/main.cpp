@@ -27,7 +27,7 @@ MotorZEM M1 = MotorZEM(1, 8, 32, 28, 29, 0.22, 0.005, 0.03, 10, 3);
 //0.18 0.005, 0.03
 MotorZEM M2 = MotorZEM(7, 5, 36, 34, 35, 0.22, 0.005, 0.03, 10, 3);
 // MotorZEM(IN1, IN2, enc, ENABLE, SLEW, KPM, KIM, KDM, reductor, cpr);
-SensorsZEM QRE(0.002, 0, 0, pins_sensors);
+SensorsZEM QRE(0.001, 0, 0, pins_sensors);
 int sensors_lat[2];
 
 inline void update_motors()
@@ -96,8 +96,8 @@ void setup()
 
 void loop()
 {
-  M2.setTargetSpeed(((30-QRE.out)>0)? (30-QRE.out):0);
-  M1.setTargetSpeed(((30+QRE.out)>0)? (30+QRE.out):0);
+  M2.setPWM(((30-QRE.out)>0)? (30-QRE.out):0);
+  M1.setPWM(((30+QRE.out)>0)? (30+QRE.out):0);
   M1.run();
   M2.run();
   //int T = millis();
