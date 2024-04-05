@@ -6,28 +6,29 @@ MotorZEM::MotorZEM(int IN1, int IN2, int enc, int ENABLE, int SLEW, double KPM, 
     this->IN2 = IN2;
     this->ENABLE = ENABLE;
     this->enc = enc;
-    PID = PIDZEM(KPM, KIM, KDM);
+    PID = PIDZEM(KPM, KIM, KDM,1);
     this->reductor = reductor;
     digitalWrite(ENABLE, HIGH);
     digitalWrite(SLEW, HIGH);
     this->runMode = 0;
     this->cpr = cpr;
+    this->PID.k_filter=1;
 }
 String MotorZEM::printV()
 {
-    return "V: " + String(speed) + " Vt: " + String(targetSpeed);
+    return "V: " + String(avg_speed) + " Vt: " + String(targetSpeed);
 };
 String MotorZEM::printPID()
 {
-    return "P: " + String(PID.KP) + " I: " + String(PID.KI) + " D: " + String(PID.KD) + " E: " + String(speed - targetSpeed) + " O: " + String(out) + " I:" + String(PID.integral);
+    return "KP: " + String(PID.KP) + " KI: " + String(PID.KI) + " KD: " + String(PID.KD) + " E: " + String(avg_speed - targetSpeed) + " O: " + String(out) + " I:" + String(PID.integral);
 };
 String MotorZEM::printAll()
 {
-    return "V: " + String(speed) + " Vt: " + String(targetSpeed) + " Output PID: " + String(out) + " PWM: " + String(PWM) + " E: " + String(speed - targetSpeed) + " I:" + PID.integral;
+    return "V: " + String(avg_speed) + " Vt: " + String(targetSpeed) + " Output PID: " + String(out) + " PWM: " + String(PWM) + " E: " + String(speed - targetSpeed) + " I:" + PID.integral;
 };
 String MotorZEM::printCSV()
 { // v,vt,target,out,pwm,e,i
-    return "," + String(speed) + "," + String(targetSpeed) + "," + String(out) + "," + String(PWM) + "," + String(speed - targetSpeed) + "," + PID.integral;
+    return "," + String(avg_speed) + "," + String(targetSpeed) + "," + String(out) + "," + String(PWM) + "," + String(speed - targetSpeed) + "," + PID.integral;
 };
 String MotorZEM::printRotations()
 {

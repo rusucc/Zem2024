@@ -9,6 +9,8 @@ class MotorZEM
 public:
     volatile long count, countAbs; // count pentru pulsuri, se reseteaza
     double speed, targetSpeed, rotations, targetRotations, rotationsAbs;
+    double old_speeds[window_motors],avg_speed;
+    int index_speeds;
     int runMode, cpr, out = 0, PWM = 0, reductor;
     int IN1, IN2, enc, ENABLE;
     PIDZEM PID;
@@ -16,11 +18,11 @@ public:
     MotorZEM(int IN1, int IN2, int enc, int ENABLE, int SLEW, double KPM, double KIM, double KDM, int reductor, int cpr);
     inline void calculateRotations()
     {
-        rotations = double(count) / cpr / reductor;
+        rotations = double(count);
     }
     inline void calculateRotationsAbs()
     {
-        rotationsAbs = double(countAbs) / cpr / reductor;
+        rotationsAbs = double(countAbs);
     }
     inline void setTargetRotations(int rot)
     {
@@ -28,7 +30,12 @@ public:
     }
     inline void calculateSpeed()
     {
-        speed = (rotations * 1000) / dt; // rotatii pe secunda
+         // rotatii pe dts secunde
+        index_speeds++;
+        if(index_speeds==window_motors) index_speeds=0;
+        avg_speed-=(double(old_speeds[index_speeds])/(double(window_motors)));
+        old_speeds[index_speeds]=rotations;
+        avg_speed+=(double(rotations)/double(window_motors));
     }
     inline void setTargetSpeed(double v)
     {
