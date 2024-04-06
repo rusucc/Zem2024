@@ -28,5 +28,9 @@ inline void setLimits(double maxI = 10000, double minI = 0)
         e_old = e;
         return out;
     }
+    inline void reset(){
+        integral = 0;
+        e_old = 0;
+    }
 };
 #endif

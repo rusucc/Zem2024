@@ -22,6 +22,7 @@ void SensorsZEM::calculatePosition()
     int sum = 0;
     int w_avg = 0;
     line = false;
+    read_number=0;
     readRaw();
     for (int i = 0; i < number; i++)
     {
@@ -29,7 +30,7 @@ void SensorsZEM::calculatePosition()
         values[i] = map(rawValues[i], calib[i].min_value, calib[i].max_value, 0, 1000);
         //Serial.println(values[i]);
         if (values[i] > threshold)
-            line = true;
+            line = true,read_number++;
         if (values[i] > 100)
         {
             sum += values[i];
@@ -59,7 +60,10 @@ void SensorsZEM::calibrate(int cycles)
         }
     }
 }
-
+void SensorsZEM::resetPID(){
+    this->PID.reset();
+    out = 0;
+}
 String SensorsZEM::printValues()
 {
     String ret = "";

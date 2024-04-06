@@ -8,6 +8,7 @@ class SensorsZEM
 {
 public:
     bool line;
+    int read_number;
     struct calibrated_values
     {
         int max_value;
@@ -24,6 +25,7 @@ public:
     void readRaw();
     void calculatePosition();
     void calibrate(int cycles);
+    void resetPID();
     String printValues();
     String printRawValues();
     String print();
