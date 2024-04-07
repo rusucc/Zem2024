@@ -65,12 +65,15 @@ inline void update_sensors()
 }
 inline void telemetry()
 {
+  //Serial.print(sensors_lat[0]),Serial.print(" "),Serial.println(sensors_lat[1]);
   //Serial.print(M1.PWM),Serial.print(" "),Serial.println(M2.PWM);
-  Serial.print(sensors_lat[0]),Serial.print(" "),Serial.println(sensors_lat[1]);
+  //Serial.print(QRE.line),Serial.print(" "),Serial.println(QRE.read_number);
+  //Serial.println();
+  Serial.print(QRE.position),Serial.print(" "),Serial.println(QRE.out);
 }
 void setup()
 {
-  Serial.begin(9600);
+  Serial.begin(38400);
   attachInterrupt(digitalPinToInterrupt(M1.enc), encA, RISING);
   attachInterrupt(digitalPinToInterrupt(M2.enc), encB, RISING);
   M1.setRunMode(0);
@@ -97,7 +100,7 @@ void setup()
 
 void loop()
 {
-  int baseSpeed = 30;
+  int baseSpeed = 40;
   //50
   int semnalM1 = baseSpeed+QRE.out;
   semnalM1 = semnalM1>0? semnalM1:0;
@@ -123,64 +126,67 @@ void loop()
   }
   else M1.setPWM(semnalM1),M2.setPWM(semnalM2);
   */
-  if(QRE.read_number>5){
-    M1.setPWM(baseSpeed);
-    M2.setPWM(baseSpeed);
+  if(QRE.read_number>4){
+    t_line.end();
+    M1.setPWM(30);
+    M2.setPWM(30);
     int T = millis();
-    while(millis()-T<500)M1.run(),M2.run();
+    while(millis()-T<50){
+      M1.run();
+      M2.run();
+      update_sensors();
+    }
+    //while(true) M1.setPWM(0),M2.setPWM(0),M1.run(),M2.run();
     update_sensors();
     if(QRE.line){
-      M1.setPWM(baseSpeed+QRE.out);
-      M2.setPWM(baseSpeed-QRE.out);
+      QRE.resetPID();
+      M1.setPWM(baseSpeed);
+      M2.setPWM(baseSpeed);
     }
     else{
       Serial.println("Caut linia!");
-      t_line.end();
       QRE.resetPID();
-      while(abs(QRE.position-3500)<150){ 
+      while(QRE.values[2]<450 or !QRE.line){ 
         M1.setPWM(30);
         M2.setPWM(0);
         M1.run();
         M2.run();
         update_sensors();
-        delay(dt_line);
+        Serial.print("In cautare ");
+        Serial.print(QRE.position),Serial.print(" ");
+        Serial.println(QRE.line);
       }
+      //while(true) M1.setPWM(0),M2.setPWM(0),M1.run(),M2.run();
       Serial.println("Am gasit linia");
-      while(true) M1.setPWM(0),M2.setPWM(0),M1.run(),M2.run();
-      while(sensors_lat[0]<500){
+      while(sensors_lat[1]<500){
         update_sensors();
         M1.setPWM(30+QRE.out);
         M2.setPWM(30-QRE.out);
         M1.run();
         M2.run();
-        delay(dt_line);
+        Serial.println("Senzor lateral:" + String(sensors_lat[1]));
       }
-      Serial.println("PID pe linie");
-      M1.setRunMode(1);
-      M2.setRunMode(1);
-      M1.setTargetRotations(3);
-      M2.setTargetRotations(6);
-      while(!M1.arrived or !M2.arrived){
-        if(!M1.arrived) M1.setPWM(30);
-        else M1.setPWM(0);
-        if(!M2.arrived) M2.setPWM(30);
-        else M2.setPWM(0);
+      Serial.println("Am gasit iesirea");
+      while(QRE.values[3]<500){
+        M1.setPWM(30);
+        M2.setPWM(0);
         M1.run();
         M2.run();
+        update_sensors();
       }
-      Serial.println("Am mers rotatiile");
-      M1.setRunMode(0);
-      M2.setRunMode(0);
-      Serial.println("iesire din giratoriu");
+      Serial.println("Am iesit");
+      QRE.resetPID();
       t_line.begin(update_sensors,dt_line*1000);
     }
+    t_line.begin(update_sensors,dt_line*1000);
   }
   else{
     M1.setPWM(semnalM1);
     M2.setPWM(semnalM2);
+    Serial.println("Fara intersectii");
   }
-  M1.run();
-  M2.run();
+  //M1.run();
+  //M2.run();
   //int T = millis();
   //while(millis()-T<500);
   /*for(int i=0;i<number;i++){
