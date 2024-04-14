@@ -2,11 +2,11 @@
 #include "SensorsZEM.h"
 void SensorsZEM::readRaw()
 {
-    int T = millis();
+    elapsedMillis T;
     for (int i = 0; i < number; i++)
     {
-        while (millis() - T < dts);
-        T = millis();
+        T = 0;
+        while (T < dts);
         rawValues[i] = analogRead(pins[i]);
     }
 }

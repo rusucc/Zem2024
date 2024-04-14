@@ -11,6 +11,7 @@ public:
     double speed, targetSpeed, rotations, targetRotations, rotationsAbs;
     int runMode, cpr, out = 0, PWM = 0, reductor;
     int IN1, IN2, enc, ENABLE;
+    bool direction = 1; //forward
     PIDZEM PID;
     bool arrived = false;
     MotorZEM(int IN1, int IN2, int enc, int ENABLE, int SLEW, double KPM, double KIM, double KDM, int reductor, int cpr);
@@ -58,8 +59,17 @@ public:
     {
         PWM = (PWM < 0) ? 0 : PWM;
         PWM = (PWM > 255) ? 255 : PWM;
-        analogWrite(IN1, PWM);
-        analogWrite(IN2, 0);
+        if(direction == 1 ){
+            analogWrite(IN1, PWM);
+            analogWrite(IN2, 0);
+        }
+        else{
+            analogWrite(IN1, 0);
+            analogWrite(IN2, PWM);
+        }
+    }
+    inline void setDirection(int dir){
+        direction = dir;
     }
     inline void run()
     {
