@@ -25,7 +25,7 @@ const int echo_pin = 36;
 const int trig_pin = 32;
 UltraSonicDistanceSensor distanceSensor(trig_pin, echo_pin);
 float wallDistance;
-PIDZEM wallPID(8,0,0);
+PIDZEM wallPID(3,0,2);
 
 inline void update_sensors()
 {
@@ -34,12 +34,15 @@ inline void update_sensors()
   sensors_lat[0] = analogRead(pins_sensors_lat[0]);
   sensors_lat[1] = analogRead(pins_sensors_lat[1]);
 }
+inline void update_ultrasonic(){
+  wallDistance=distanceSensor.measureDistanceCm();
+}
 inline void telemetry()
 {
-  for(int i=0;i<number;i++){
-    Serial.printf("%04d | ",QRE.values[i]);
-  }
-  Serial.println();
+  //for(int i=0;i<number;i++){
+  //  Serial.printf("%04d | ",QRE.values[i]);
+  //}
+  //Serial.println();
   //Serial.printf("| Senzori laterali [0](dreapta): %04d | [1](stanga): %04d, intersectie:",sensors_lat[0],sensors_lat[1]);
   //Serial.println(wallDistance);
 }
@@ -47,27 +50,27 @@ void setup()
 {
   Serial.begin(9600);
   delay(100);
-  Serial.println("Hello");
-  while(!Serial.available());
+  //Serial.println("Hello");
+  //while(!Serial.available());
   M1.setRunMode(0);
   M2.setRunMode(0);
   delay(2000);
-  Serial.println("Start calib");
-  QRE.calibrate(200);
-  Serial.println("Sfarsit calib");
+  //Serial.println("Start calib");
+  //QRE.calibrate(200);
+  //Serial.println("Sfarsit calib");
   delay(1000);
-  for(int i=0;i<number;i++){
-    Serial.print(QRE.calib[i].min_value),Serial.print(" ");
-  }
-  Serial.println();
-  for(int i=0;i<number;i++){
-    Serial.print(QRE.calib[i].max_value),Serial.print(" ");
-  }
-  Serial.println();
+  //for(int i=0;i<number;i++){
+  //  Serial.print(QRE.calib[i].min_value),Serial.print(" ");
+  //}
+  //Serial.println();
+  //for(int i=0;i<number;i++){
+  //  Serial.print(QRE.calib[i].max_value),Serial.print(" ");
+  //}
+  //Serial.println();
   delay(1000);
-  t_ultrasonic.begin([](){wallDistance=distanceSensor.measureDistanceCm();}, dt_ultrasonic * 1000);
+  //t_ultrasonic.begin(update_ultrasonic, dt_ultrasonic * 1000);
   t_telem.begin(telemetry, dt_telem * 1000);    // telemetrie la fiecare 200 ms
-  Serial.println("Setup end");
+  //Serial.println("Setup end");
 }
 
 inline void follow_line(int pwm);
@@ -79,63 +82,18 @@ inline void stop();
 
 void loop()
 {
+  update_ultrasonic();
+  if(wallDistance>30) wallDistance = 30;
+  int outWallPID = wallPID.calculateOutput(10,wallDistance);
   update_sensors();
-  if(QRE.line and wallDistance<=20){
-    while(QRE.line){
-      forward(20);
-      update_sensors();
-    }
-    Serial.println("Stau doar pe perete");
-    while(!QRE.line){
-      //perete pe dreapta;
-      int outWallPID = wallPID.calculateOutput(10,wallDistance);
-      update_sensors();
-      M1.setPWM(wall_pwm-outWallPID);
-      M2.setPWM(wall_pwm+outWallPID);
-      M1.run();
-      M2.run();
-      elapsedMillis T;
-      while(T<30);
-      Serial.printf("Distanta perete: %f\n",wallDistance);
-    }
-    Serial.println("Am gasit linia");
-    stop();
-  }
-  if(QRE.read_number>min_number_sensors_read and sensors_lat[0]>threshold_lateral and sensors_lat[1]>threshold_lateral){
-    tip_intersectie = "Existenta";
-    forward(50);
-    if(QRE.line) follow_line(base_pwm),QRE.PID.reset();
-    else{
-      tip_intersectie="Giratoriu";
-      QRE.resetPID();
-      roundabout();
-      tip_intersectie="linie";
-      QRE.resetPID();
-      //stop();
-    }
-  }
-  else{
-    if(sensors_lat[0]>threshold_lateral and sensors_lat[1]<threshold_lateral  and QRE.read_number>=3 and QRE.read_number<=5){
-      tip_intersectie="90 dreapta";
-      forward(chicane_forward_time);
-      turn_right_until_line();
-      tip_intersectie="linie";
-      QRE.PID.reset();
-      //stop();
-    }
-    else if(sensors_lat[1]>threshold_lateral and sensors_lat[0]<threshold_lateral  and QRE.read_number>=3 and QRE.read_number<=5){
-      tip_intersectie="90 stanga";
-      forward(chicane_forward_time);
-      turn_left_until_line();
-      tip_intersectie="linie";
-      QRE.PID.reset();
-      //stop();
-    }
-    else{
-    follow_line(base_pwm);
-    tip_intersectie="linie";
-    }
-  }
+  M1.setPWM(wall_pwm-outWallPID);
+  M2.setPWM(wall_pwm+outWallPID);
+  M1.run();
+  M2.run();
+  elapsedMillis T;
+  while(T<100);
+  Serial.printf("Distanta perete: %f, \n",wallDistance);
+
 }
 inline void follow_line(int pwm){
   M1.setDirection(1);
