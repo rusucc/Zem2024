@@ -25,7 +25,7 @@ const int echo_pin = 36;
 const int trig_pin = 32;
 UltraSonicDistanceSensor distanceSensor(trig_pin, echo_pin);
 float wallDistance;
-PIDZEM wallPID(3,0,2);
+PIDZEM wallPID(3,0,1.5);
 
 inline void update_sensors()
 {
@@ -36,6 +36,7 @@ inline void update_sensors()
 }
 inline void update_ultrasonic(){
   wallDistance=distanceSensor.measureDistanceCm();
+  if(wallDistance>30) wallDistance = 30;
 }
 inline void telemetry()
 {
@@ -50,23 +51,23 @@ void setup()
 {
   Serial.begin(9600);
   delay(100);
-  //Serial.println("Hello");
+  Serial.println("Hello");
   //while(!Serial.available());
   M1.setRunMode(0);
   M2.setRunMode(0);
   delay(2000);
-  //Serial.println("Start calib");
-  //QRE.calibrate(200);
-  //Serial.println("Sfarsit calib");
+  Serial.println("Start calib");
+  QRE.calibrate(200);
+  Serial.println("Sfarsit calib");
   delay(1000);
-  //for(int i=0;i<number;i++){
-  //  Serial.print(QRE.calib[i].min_value),Serial.print(" ");
-  //}
-  //Serial.println();
-  //for(int i=0;i<number;i++){
-  //  Serial.print(QRE.calib[i].max_value),Serial.print(" ");
-  //}
-  //Serial.println();
+  for(int i=0;i<number;i++){
+    Serial.print(QRE.calib[i].min_value),Serial.print(" ");
+  }
+  Serial.println();
+  for(int i=0;i<number;i++){
+    Serial.print(QRE.calib[i].max_value),Serial.print(" ");
+  }
+  Serial.println();
   delay(1000);
   //t_ultrasonic.begin(update_ultrasonic, dt_ultrasonic * 1000);
   t_telem.begin(telemetry, dt_telem * 1000);    // telemetrie la fiecare 200 ms
@@ -79,19 +80,32 @@ inline void turn_right_until_line();
 inline void forward(int ms);
 inline void roundabout();
 inline void stop();
-
+inline void follow_wall();
+inline void turn_right_until_wall();
+inline void turn_left_until_wall();
 void loop()
 {
   update_ultrasonic();
-  if(wallDistance>30) wallDistance = 30;
-  int outWallPID = wallPID.calculateOutput(10,wallDistance);
+  Serial.printf("Distanta perete: %f, \n",wallDistance);
+  if(!QRE.line and wallDistance>=0 and wallDistance<=10){
+    while(wallDistance!=30) follow_wall();
+    forward(100);
+    turn_right_until_wall();
+    while(!QRE.line) follow_wall();
+  }
+  if(QRE.line) stop();
+}
+inline void follow_wall(){
+  update_ultrasonic();
+  update_sensors();
+  int outWallPID = wallPID.calculateOutput(wall_setpoint,wallDistance);
   update_sensors();
   M1.setPWM(wall_pwm-outWallPID);
   M2.setPWM(wall_pwm+outWallPID);
   M1.run();
   M2.run();
   elapsedMillis T;
-  while(T<100);
+  while(T<50);
   Serial.printf("Distanta perete: %f, \n",wallDistance);
 
 }
@@ -129,24 +143,41 @@ inline void roundabout(){
   }
   turn_left_until_line();
 }
+inline void turn_right_until_wall(){
+  elapsedMillis T = 0;
+  while(wallDistance>=wall_setpoint){
+    M1.setPWM(wall_inside_pwm+correction_motor);
+    M1.setDirection(1);
+    M2.setPWM(wall_outside_pwm-correction_motor);
+    M1.run();
+    M2.run();
+    while(T<=stability_delay);
+    T=0;
+    update_sensors();
+    update_ultrasonic();
+  }
+  M2.setDirection(1);
+  M1.setDirection(1);
+}
 inline void turn_left_until_line(){
   elapsedMillis T = 0;
   while(QRE.values[4]<threshold_calibrated and QRE.values[5]<threshold_calibrated){
     M2.setDirection(0);
     M1.setPWM(turn_outside_pwm+correction_motor);
-    M2.setPWM(turn_inside_pwm-correction_motor);
+    M2.setPWM(turn_outside_pwm-correction_motor);
     M1.run();
     M2.run();
     while(T<=stability_delay);
     T=0;
     update_sensors();
   }
+  M2.setDirection(1);
   M1.setDirection(1);
 }
 inline void turn_right_until_line(){
   elapsedMillis T = 0;
   while(QRE.values[4]<threshold_calibrated and QRE.values[5]<threshold_calibrated){
-    M1.setPWM(turn_inside_pwm+correction_motor);
+    M1.setPWM(turn_outside_pwm+correction_motor);
     M1.setDirection(0);
     M2.setPWM(turn_outside_pwm-correction_motor);
     M1.run();
@@ -156,6 +187,7 @@ inline void turn_right_until_line(){
     update_sensors();
   }
   M2.setDirection(1);
+  M1.setDirection(1);
 }
 inline void stop(){
   while(true){
