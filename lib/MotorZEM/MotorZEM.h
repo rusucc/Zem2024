@@ -58,7 +58,7 @@ public:
     inline void writePWM()
     {
         PWM = (PWM < 0) ? 0 : PWM;
-        PWM = (PWM > 255) ? 255 : PWM;
+        PWM = (PWM > max_pwm) ? max_pwm : PWM;
         if(direction == 1 ){
             analogWrite(IN1, PWM);
             analogWrite(IN2, 0);

@@ -2,17 +2,17 @@
 #include "SensorsZEM.h"
 void SensorsZEM::readRaw()
 {
-    elapsedMillis T;
+    int T = millis();
     for (int i = 0; i < number; i++)
     {
-        T = 0;
-        while (T < dts);
+        while (millis() - T < dts);
+        T = millis();
         rawValues[i] = analogRead(pins[i]);
     }
 }
 SensorsZEM::SensorsZEM(double KPS, double KIS, double KDS, int pins[])
 {
-    PID = PIDZEM(KPS, KIS, KDS);
+    PID = PIDZEM(KPS, KIS, KDS,1);
     memcpy(this->pins, pins, number * sizeof(int));
     for (int i = 0; i < number; i++)
         calib[i].min_value = 1001, calib[i].max_value = -1;
@@ -64,6 +64,7 @@ void SensorsZEM::resetPID(){
     this->PID.reset();
     out = 0;
 }
+
 String SensorsZEM::printValues()
 {
     String ret = "";
